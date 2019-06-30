@@ -13,7 +13,7 @@ import groovy.transform.Field
 
 @Field String BASEDIR = '/Users/ebook'
 @Field String SESSIONID = 'xxx'
-@Field String STARTPAGE = 'https://learning.oreilly.com/api/v1/book/9781118533895/chapter/OEBPS/9781118533895_epub_cov.htm'
+@Field String STARTPAGE = 'https://learning.oreilly.com/api/v1/book/xxx'
 @Field String DIR_JSON = 'json'
 @Field String DIR_CONTENT = 'content'
 @Field String DIR_IMAGE = 'images'
@@ -114,37 +114,33 @@ def page(def url, Closure... visitors) {
 	}
 }
 
-def imageDownloader() {
-	{ root ->
-		def baseUrl = root.asset_base_url
-		root.images.each {
-			println "downloading image: ${baseUrl}${it}"
-			link(baseUrl + it, saveStreamTo(DIR_IMAGE))
+def imageDownloader = { root ->
+	def baseUrl = root.asset_base_url
+	root.images.each {
+		println "downloading image: ${baseUrl}${it}"
+		link(baseUrl + it, saveStreamTo(DIR_IMAGE))
+	}
+}
+
+
+def contentDownloader = { root ->
+	println "downloading content: ${root.content}"
+	def content = link(root.content, saveStringTo(DIR_CONTENT))
+	def extension = extension(filename(root.content))
+	new File("${BASEDIR}/final.${extension}").withWriterAppend { out ->
+		out.println content
+	}
+}
+
+
+def cssDownloader = { root ->
+	root.stylesheets.each { it ->
+		def filename = filename(it.url)
+		if (!new File("${BASEDIR}/${DIR_CSS}/${filename}").exists()) {
+			println "downloading css: ${it.url}"
+			link(it.url, saveStreamTo(DIR_CSS))
 		}
 	}
 }
 
-def contentDownloader() {
-	{ root ->
-		println "downloading content: ${root.content}"
-		def content = link(root.content, saveStringTo(DIR_CONTENT))
-		def extension = extension(filename(root.content))
-		new File("${BASEDIR}/final.${extension}").withWriterAppend { out ->
-			out.println content
-		}
-	}
-}
-
-def cssDownloader() {
-	{ root ->
-		root.stylesheets.each { it ->
-			def filename = filename(it.url)
-			if (!new File("${BASEDIR}/${DIR_CSS}/${filename}").exists()) {
-				println "downloading css: ${it.url}"
-				link(it.url, saveStreamTo(DIR_CSS))
-			}
-		}
-	}
-}
-
-page(STARTPAGE, imageDownloader(), contentDownloader(), cssDownloader())
+page(STARTPAGE, imageDownloader, contentDownloader, cssDownloader)
