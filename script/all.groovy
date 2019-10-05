@@ -12,8 +12,7 @@ import groovy.transform.Field
 
 
 @Field String BASEDIR = '/Users/ebook'
-@Field String SESSIONID = 'xxx'
-@Field String STARTPAGE = 'https://learning.oreilly.com/api/v1/book/xxx'
+@Field String STARTPAGE = 'https://learning.oreilly.com/api/v1/book/...'
 @Field String DIR_JSON = 'json'
 @Field String DIR_CONTENT = 'content'
 @Field String DIR_IMAGE = 'images'
@@ -35,9 +34,19 @@ def stringFromStream(def stream) {
 	writer.toString()
 }
 
+def cookieMonster(def http) {
+	addCookie(http, [domain:'learning.oreilly.com', path:'/', name:'sessionid', value:'xxx'])
+	addCookie(http, [domain:'learning.oreilly.com', path:'/', name:'csrfsafari', value:'xxx'])
+	addCookie(http, [domain:'learning.oreilly.com', path:'/', name:'BrowserCookie', value:'xxx'])
+
+	addCookie(http, [domain:'.oreilly.com', path:'/', name:'logged_in', value:'y'])
+	addCookie(http, [domain:'.oreilly.com', path:'/', name:'orm-jwt', value:'xxx'])
+}
+
 def link(def url, Closure handler) {
 	def http = new HTTPBuilder(url)
-	addCookie(http, [domain:'learning.oreilly.com', path:'/', name:'sessionid', value:SESSIONID])
+	cookieMonster(http)
+
 	http.parser.defaultParser = { resp ->
 		handler.call(url, resp.entity.content)
 		return ''
@@ -99,18 +108,18 @@ def saveStringTo(def dir) {
 	}
 }
 
-def page(def url, Closure... visitors) {
+def init(def url, Closure... visitors) {
 	println "navigating ${url}"
-	def result = link(url, saveStringTo(DIR_JSON))
 	def jsonSlurper = new JsonSlurper()
-	def root = jsonSlurper.parseText(result)
-	
-	visitors.each {
-		it(root)
-	}
+	def landingPage = link(url, saveStringTo(DIR_JSON))
+	def root = jsonSlurper.parseText(landingPage)
 
-	if(root.next_chapter.url != null) {
-		page(root.next_chapter.url, visitors)
+	root.chapters.each {
+		def chapter = link(it, saveStringTo(DIR_JSON))
+		def chapterJson = jsonSlurper.parseText(chapter)
+		visitors.each {
+			it(chapterJson)
+		}
 	}
 }
 
@@ -135,12 +144,12 @@ def contentDownloader = { root ->
 
 def cssDownloader = { root ->
 	root.stylesheets.each { it ->
-		def filename = filename(it.url)
+		def filename = filename(it.original_url)
 		if (!new File("${BASEDIR}/${DIR_CSS}/${filename}").exists()) {
 			println "downloading css: ${it.url}"
-			link(it.url, saveStreamTo(DIR_CSS))
+			link(it.original_url, saveStreamTo(DIR_CSS))
 		}
 	}
 }
 
-page(STARTPAGE, imageDownloader, contentDownloader, cssDownloader)
+init(STARTPAGE, imageDownloader, contentDownloader, cssDownloader)

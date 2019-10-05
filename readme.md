@@ -1,9 +1,9 @@
 # Requirement
-- a valid login session id, refer to "How to find out session id"
+- a valid login session, and necessary cookies values, refer to "How to find out cookies"
 - the url of start page of the ebook you would like to download, refer to "How to find out start page"
 
 # Instruction
-1. copy session id, and put it to `@Field String SESSIONID`
+1. copy cookies values and replace respective `xxx` in method `cookieMonster()`, refer to "How to find out cookies"
 1. copy the url of start page, and put it to `@Field String STARTPAGE`
 1. create directories in below structure to store downloaded file (note: due to the fact that linux or mac does not allow non-root program to create directory, you will need to do this step manually)
 	```
@@ -24,11 +24,11 @@
    - `@Field String DIR_IMAGE`
    - `@Field String DIR_CSS`
 
-# How to find out session id
+# How to find out cookies
 1. if you are using Chrome, login to oreilly learning page
 1. after login >> View >> Developer >> Developer Tools
 1. click at Application tab >> expand Cookies sidebar >> click `http://learning.oreilly...`
-1. on the right panel, look for a cookie named `sessionid`, copy the value
+1. on the right panel, look for a cookies name required by the method `cookieMonster()`, copy the values and replace it in `xxx` in `cookieMonster()`
 
 # How to find out start page
 1. go to oreilly learning page, open the ebook you would like to download
